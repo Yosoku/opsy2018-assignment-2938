@@ -32,7 +32,7 @@ function printdir(){
 	name="$(find $1 -maxdepth 1  | grep "dataA.txt")"
 	if ! [[ $dirs == 1 ]] 
 	then
-		echo "Directory structure is NOT OK"
+		echo "Directory structure is NOT OK" >&2
 	else
 		if [[ $num = 1 ]] && ! [ -z $name ]
 		then		
@@ -41,10 +41,10 @@ function printdir(){
 			then
 				echo "Directory structure is OK"
 			else
-				echo "Directory structure is NOT OK"
+				echo "Directory structure is NOT OK" >&2
 			fi
 		else
-			echo "Directory structure is NOT OK"
+			echo "Directory structure is NOT OK" >&2
 		fi
 	fi				
 }
@@ -58,7 +58,7 @@ then
 fi
 
 #unzip
-github="$(tar xzf $1)"
+github="$(tar xzf $1 &> /dev/null)"
 #myfiles is all .txt's in $1
 myfiles="$(find $github -type f -iname "*.txt")"
 #clone every file

@@ -16,57 +16,32 @@ function line_is_valid () {
 #This function is used to initialize a url inside source.If the url doesnt exist in source.txt ,it is added 
 # and the appropriate stdout is printed
 #returns:(0 if the url was initialized)&&(1 if the url has already been initialized)
-function init () {
-	if ! grep -q "$1" source.txt
-	then
-		if curl -s "$1" > temp.txt 
-		then
-			md5="$(md5sum temp.txt | awk '{ print $1 }')"
-			echo $md5 $1 >> source.txt
-			echo "$1 INIT"	
-			return 0;
-		else
-			echo "$1 FAILED"
-		
-		fi
-	fi
-	return 1;
-}
-
-
-
-
-
 function search_update() {
 	
 	if ! grep -q "$1" source.txt
 	then
 		if curl -s "$1" > temp.txt 
 		then
-			less temp.txt
 			md5="$(md5sum temp.txt | awk '{ print $1 }')"
-			echo "HASH: $md5 URL:$1 ">> errorlog.txt
 			echo $md5 $1 >> source.txt
 			echo "$1 INIT"	
 		else
-			echo "$1 FAILED"
+			echo "$1 FAILED" >&2
 		fi
 	
 	else
 	
 		if curl -s "$1" > temp.txt
-		then
-			less temp.txt
+		then	
 			newHash="$(md5sum temp.txt | awk '{ print $1 }')"
 			prevHash="$(grep "$1" source.txt | awk '{ print $1 }')"
-			echo "New=$newHash prev=$prevHash Url = $1" >> errorlog.txt
 			if ! [ "$newHash" = "$prevHash" ]
 			then
 				echo $1
 				sed -i "s/$prevHash/$newHash/" source.txt
 			fi	
 		else
-			echo "$1 FAILED"
+			echo "$1 FAILED" >&2
 		fi
 	fi
 }
