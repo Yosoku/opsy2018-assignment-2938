@@ -1,8 +1,5 @@
 #!/bin/bash
 
-#This script takes a file containing links to websites and stores information about their source code updates
-
-
 
 #This function tests if a line is empty or a comment
 #returns:(0 if line is not empty/comment)&&(1 if the line is a comment or empty)
@@ -26,11 +23,10 @@ function init () {
 		then
 			md5="$(md5sum temp.txt | awk '{ print $1 }')"
 			echo $md5 $1 >> source.txt
-			echo "$1 INIT"
-			rm temp.txt	
+			echo "$1 INIT"	
 			return 0;
 		else
-			echo "$1 FAILED" >&2
+			echo "$1 FAILED"
 		
 		fi
 	fi
@@ -38,26 +34,42 @@ function init () {
 }
 
 
-#This function is extracting a url and stores its md5hash to newHash,then it looks inside source for the previous hash and compares them.
-#If they match,it does nothing.If they dont match,it means the site was updated,so  it prints the site and updates the hash inside source
-#If url extraction fails,it prints an error message
+
+
+
 function search_update() {
 	
-	if curl -s "$1" > temp.txt
+	if ! grep -q "$1" source.txt
 	then
-		newHash="$(md5sum temp.txt | awk '{ print $1 }')"
-		prevHash="$(grep "$1" source.txt | awk '{ print $1 }')"
-		if ! [ "$newHash" = "$prevHash" ]
+		if curl -s "$1" > temp.txt 
 		then
-			echo $1
-			sed -i "s/$prevHash/$newHash/" source.txt
-		fi	
+			less temp.txt
+			md5="$(md5sum temp.txt | awk '{ print $1 }')"
+			echo "HASH: $md5 URL:$1 ">> errorlog.txt
+			echo $md5 $1 >> source.txt
+			echo "$1 INIT"	
+		else
+			echo "$1 FAILED"
+		fi
+	
 	else
-		echo "$1 FAILED" >&2
+	
+		if curl -s "$1" > temp.txt
+		then
+			less temp.txt
+			newHash="$(md5sum temp.txt | awk '{ print $1 }')"
+			prevHash="$(grep "$1" source.txt | awk '{ print $1 }')"
+			echo "New=$newHash prev=$prevHash Url = $1" >> errorlog.txt
+			if ! [ "$newHash" = "$prevHash" ]
+			then
+				echo $1
+				sed -i "s/$prevHash/$newHash/" source.txt
+			fi	
+		else
+			echo "$1 FAILED"
+		fi
 	fi
-	rm temp.txt
 }
-
 
 
 
@@ -70,14 +82,19 @@ if ! [[ -r source.txt ]]
 then
 	touch source.txt
 fi
-
-
-while read row; do
+#fetching all urls
+while read row 
+do
 	if  line_is_valid $row 
 	then
-		if ! init $row 
-		then
-			search_update $row
-		fi
-	fi		
+	urls="$urls $row "
+	fi
 done < $1
+
+
+
+for url in $urls
+do
+	search_update $url &	
+done 
+wait
